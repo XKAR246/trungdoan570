@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Blog của tôi</title>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// 🔥 DÁN CONFIG VÀO ĐÂY
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+let currentUser = null;
+
+// 🔐 LOGIN
+window.login = async function() {
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+  currentUser = result.user;
+  document.getElementById("user").innerText = currentUser.email;
+  checkAdmin();
+}
+
+// 🔑 ADMIN LIST
+const admins = ["youremail@gmail.com"];
+
+// 👑 CHECK ADMIN
+function checkAdmin() {
+  if (admins.includes(currentUser.email)) {
+    document.getElementById("adminPanel").style.display = "block";
+  }
+}
+
+// 📝 ĐĂNG BÀI
+window.post = async function() {
+  const title = document.getElementById("title").value;
+  const content = document.getElementById("content").value;
+
+  await addDoc(collection(db, "posts"), {
+    title, content,
+    user: currentUser.email,
+    time: new Date()
+  });
+
+  alert("Đăng thành công!");
+  loadPosts();
+}
+
+// 📥 LOAD BÀI
+async function loadPosts() {
+  const list = document.getElementById("posts");
+  list.innerHTML = "";
+
+  const querySnapshot = await getDocs(collection(db, "posts"));
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <h3>${data.title}</h3>
+      <p>${data.content}</p>
+      <small>${data.user}</small>
+      <hr>
+    `;
+    list.appendChild(div);
+  });
+}
+
+loadPosts();
+
+</script>
+
+<style>
+body { font-family: Arial; max-width: 800px; margin: auto; }
+button { padding: 10px; margin: 5px; }
+#adminPanel { display: none; border: 1px solid #ccc; padding: 10px; }
+</style>
+</head>
+
+<body>
+
+<h1>🌐 Blog của tôi</h1>
+
+<button onclick="login()">Đăng nhập Google</button>
+<p id="user"></p>
+
+<div id="adminPanel">
+  <h2>Đăng bài</h2>
+  <input id="title" placeholder="Tiêu đề"><br><br>
+  <textarea id="content" placeholder="Nội dung"></textarea><br><br>
+  <button onclick="post()">Đăng</button>
+</div>
+
+<h2>Bài viết</h2>
+<div id="posts"></div>
+
+</body>
+</html>
